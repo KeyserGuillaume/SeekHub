@@ -1,4 +1,4 @@
-function userAvatarUrlQuery(username) {
+function getUserAvatarUrlQuery(username) {
     return {"query":`query {
                         user(login:"` + username + `") {
                         avatarUrl
@@ -7,7 +7,7 @@ function userAvatarUrlQuery(username) {
             "variables":{}}
 }
 
-function userRepositoriesQuery(username) {
+function getUserRepositoriesQuery(username) {
     return {"query":`query {
                         user(login:"` + username + `") {
                         login
@@ -18,6 +18,7 @@ function userRepositoriesQuery(username) {
                                 owner{
                                     login
                                 }
+                                isFork
                             }
                             }
                         }
@@ -34,11 +35,11 @@ function userAvatarUrlParser(queryResults) {
 function userRepositoriesParser(queryResults) {
     var result = JSON.parse(queryResults);
     return result.data.user.repositories.edges.map(t => ({
-        "id": t.node.name, "owner": t.node.owner.login
+        "id": t.node.name, "owner": t.node.owner.login, "isFork": t.node.isFork
     }));
 }
 
-function repositoryContributorsQuery(owner, name) {
+function getRepositoryContributorsQuery(owner, name) {
     // it is a valid query, it works on their online console
     // but I get an error message from the API
     return {"query":`query {
@@ -55,4 +56,8 @@ function repositoryContributorsQuery(owner, name) {
                             }
                     }`
     }
+}
+
+function getRepositoryContributorsUrl(owner, repo){
+    return "https://api.github.com/repos/" + owner + "/" + repo + "/contributors";
 }

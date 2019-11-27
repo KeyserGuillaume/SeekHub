@@ -12,9 +12,8 @@ function extendGraphWithRepos(user, addUser=false){
     // having G be a global variable is terrible, change that !
     if (addUser){
         sendQueryToGithubAPIv4(
-            userAvatarUrlQuery(user),
+            getUserAvatarUrlQuery(user),
             function(res){
-                console.log(userAvatarUrlParser(res));
                 G.addUser(user, userAvatarUrlParser(res));
                 updateGraph(G);
                 extendGraphWithRepos(user);
@@ -22,7 +21,7 @@ function extendGraphWithRepos(user, addUser=false){
     }
     else{
         sendQueryToGithubAPIv4(
-            userRepositoriesQuery(user),
+            getUserRepositoriesQuery(user),
             function(res){
                 G.addRepositoriesOfUser(user, userRepositoriesParser(res));
                 updateGraph(G);
@@ -32,16 +31,16 @@ function extendGraphWithRepos(user, addUser=false){
 
 function extendGraphWithUser(user){
     sendQueryToGithubAPIv4(
-        userAvatarUrlQuery(user),
+        getUserAvatarUrlQuery(user),
         function(res){
-            console.log(userAvatarUrlParser(res));
             G.addUser(user, userAvatarUrlParser(res));
             updateGraph(G);
         });
 }
 
 function extendGraphWithUsers(owner, repo){
-    sendQueryToGithubAPIv3(owner, repo,
+    sendQueryToGithubAPIv3(
+        getRepositoryContributorsUrl(owner, repo),
         function(res){
             G.addContributorsOfRepository(repo, owner, JSON.parse(res));
             updateGraph(G);

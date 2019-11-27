@@ -13,10 +13,10 @@ var simulation = d3.forceSimulation()
 
 function updateGraph(graph) {
 
-    var link = svg.selectAll(".links")
+    var link = svg.selectAll(".continuous-line,.dashed-line")
     .data(graph.links);
     link = link.enter().append("line")
-    .attr("class", "links")
+    .attr("class",  get_link_class)
     .merge(link);
 
     var node = svg.selectAll(".nodes")
@@ -89,5 +89,13 @@ function get_node_image_url(d) {
     } 
     else {
         return d.avatar_url;
+    }
+}
+
+function get_link_class(d) {
+    if (d.viaFork){
+        return "dashed-line";
+    } else {
+        return "continuous-line";
     }
 }

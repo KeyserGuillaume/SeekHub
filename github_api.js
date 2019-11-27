@@ -40,42 +40,53 @@ class GithubGraph{
         }
         for (var repo in repos){
             this.addNodeIfAbsent(this.formRepositoryNode(repos[repo].id, repos[repo].owner));
-            this.links.push({"source": user, "target": repos[repo].id});
+            this.links.push({"source": user, "target": repos[repo].id, "viaFork":repos[repo].isFork});
         }
     }
 
     addContributorsOfRepository(repo, owner, users){
+        // directly reads the JSON-parsed answer of the API v3 response
         this.addRepository(repo, owner);
         for (var user in users){
             this.addNodeIfAbsent(this.formUserNode(users[user]["login"], users[user]["avatar_url"]));
-            this.links.push({"source": users[user]["login"], "target": repo});
+            this.links.push({"source": users[user]["login"], "target": repo, "viaFork": false});
         }
     }
 }
 
-function sendQueryToGithubAPIv4(query, callback) {
-    var xmlHttp = new XMLHttpRequest(),
-        theUrl = "https://api.github.com/graphql";
+function sendQueryToUrl(url, headers, method, data, callback) {
+    var xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function () {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
             callback(xmlHttp.responseText);
     }
-    xmlHttp.open("POST", theUrl, true);
-    xmlHttp.setRequestHeader("Authorization", "bearer " + TOKEN);
-    xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xmlHttp.send(JSON.stringify(query));
+    xmlHttp.open(method, url, true);
+    for (h in headers){
+        xmlHttp.setRequestHeader(headers[h][0], headers[h][1]);
+    }
+    xmlHttp.send(data); // not a problem if data is null like when method is GET.
 }
 
-function sendQueryToGithubAPIv3(owner, repo, callback) {
-    var xmlHttp = new XMLHttpRequest(),
-        theUrl = "https://api.github.com/repos/" + owner + "/" + repo + "/contributors";
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-            callback(xmlHttp.responseText);
-    }
-    xmlHttp.open("GET", theUrl, true);
-    xmlHttp.setRequestHeader("Authorization", "token " + TOKEN);
-    xmlHttp.setRequestHeader("Accept", "application/vnd.github.v3+json");
-    //xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xmlHttp.send();
+function sendQueryToGithubAPIv4(query, callback) {
+    sendQueryToUrl(
+        "https://api.github.com/graphql",
+        [
+            ["Authorization", "bearer " + TOKEN],
+            ["Content-Type", "application/json;charset=UTF-8"]
+        ],
+        "POST",
+        JSON.stringify(query),
+        callback);
+}
+
+function sendQueryToGithubAPIv3(url, callback) {
+    sendQueryToUrl(
+        url,
+        [
+            ["Authorization", "token " + TOKEN],
+            ["Accept", "application/vnd.github.v3+json"],
+        ],
+        "GET",
+        null,
+        callback);
 }

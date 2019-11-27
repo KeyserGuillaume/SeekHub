@@ -40,7 +40,7 @@ class GithubGraph{
         }
         for (var repo in repos){
             this.addNodeIfAbsent(this.formRepositoryNode(repos[repo].id, repos[repo].owner));
-            this.links.push({"source": user, "target": repos[repo].id, "viaFork":repos[repo].isFork});
+            this.links.push({"source": user, "target": repos[repo].id, "viaFork":repos[repo].viaFork});
         }
     }
 
@@ -52,41 +52,4 @@ class GithubGraph{
             this.links.push({"source": users[user]["login"], "target": repo, "viaFork": false});
         }
     }
-}
-
-function sendQueryToUrl(url, headers, method, data, callback) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-            callback(xmlHttp.responseText);
-    }
-    xmlHttp.open(method, url, true);
-    for (h in headers){
-        xmlHttp.setRequestHeader(headers[h][0], headers[h][1]);
-    }
-    xmlHttp.send(data); // not a problem if data is null like when method is GET.
-}
-
-function sendQueryToGithubAPIv4(query, callback) {
-    sendQueryToUrl(
-        "https://api.github.com/graphql",
-        [
-            ["Authorization", "bearer " + TOKEN],
-            ["Content-Type", "application/json;charset=UTF-8"]
-        ],
-        "POST",
-        JSON.stringify(query),
-        callback);
-}
-
-function sendQueryToGithubAPIv3(url, callback) {
-    sendQueryToUrl(
-        url,
-        [
-            ["Authorization", "token " + TOKEN],
-            ["Accept", "application/vnd.github.v3+json"],
-        ],
-        "GET",
-        null,
-        callback);
 }

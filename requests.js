@@ -105,8 +105,7 @@ function postProcessUserRepositoriesAsync(result, i, callback) {
             // the parent, so that once the query result is known we can hopefully finish up.
             let transmittedResults = result;
             let transmittedCallback = callback;
-            getRepositoryParentAsync(t.node.owner.login, t.node.name, function(r){
-                console.log("postProcessUserRepositoriesAsync (2) was just tested with " + r.owner.login + "/" + r.name);
+            getRepositoryParentAsync(t.node.parent.owner.login, t.node.name, function(r){
                 transmittedResults[j].node.parent = r;
                 postProcessUserRepositoriesAsync(transmittedResults, j, transmittedCallback);
             });

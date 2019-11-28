@@ -2,7 +2,7 @@ function extendGraph(selectedNode) {
     if (selectedNode.type == "user"){
         extendGraphWithRepos(selectedNode.id);
     }
-    else {
+    else if (!selectedNode.isFork){
         extendGraphWithUsers(selectedNode.owner, selectedNode.id);
     }
 }

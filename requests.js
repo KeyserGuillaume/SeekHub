@@ -59,7 +59,7 @@ function getRepositoryParentAsync(owner, repo, callback){
     sendQueryToGithubAPIv4(
         {
             "query":`query {
-                repository(owner:"` + owner + `, name:"` + repo + `") {
+                repository(owner:"` + owner + `", name:"` + repo + `") {
                   parent{
                     name
                     owner{login}
@@ -70,12 +70,7 @@ function getRepositoryParentAsync(owner, repo, callback){
         },
         function(res){
             var result = JSON.parse(res);
-            result = res.data.repository.parent;
-            /*result = {
-                "id": res.data.repository.parent.name, 
-                "owner": res.data.repository.parent.owner.login,
-                "isFork": res.data.repository.parent.isFork
-            };*/
+            result = result.data.repository.parent;
             callback(result);
         });
 }
@@ -88,10 +83,18 @@ function postProcessUserRepositoriesAsync(result, i, callback) {
     // i is set to 0 when the function is called from getUserRepositoriesAsync.
     for (let j = i; j < result.length; j++){
         var t = result[j];
-        if (!t.node.isFork || (t.node.isFork && t.node.name != t.node.parent.name)){
+        if (!t.node.isFork){
             result[j] = {
-                "id": t.node.name, "owner": t.node.owner.login, "viaFork": false
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": false, "viaFork": false
             };
+        } else if(t.node.name != t.node.parent.name){
+            result.splice(j+1, 0, t);
+            result[j] = {
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": true, "viaFork": false
+            };
+            result[j+1].node.name = t.node.parent.name;
+            postProcessUserRepositoriesAsync(result, j+1, callback);
+            return;
         } else if (t.node.name == t.node.parent.name && !t.node.parent.isFork){
             result[j] = {
                 "id": t.node.name, "owner": t.node.parent.owner.login, "viaFork": true
@@ -103,9 +106,9 @@ function postProcessUserRepositoriesAsync(result, i, callback) {
             let transmittedResults = result;
             let transmittedCallback = callback;
             getRepositoryParentAsync(t.node.owner.login, t.node.name, function(r){
-                console.log("postProcessUserRepositoriesAsync was just tested, is it ok ?");
+                console.log("postProcessUserRepositoriesAsync (2) was just tested with " + r.owner.login + "/" + r.name);
                 transmittedResults[j].node.parent = r;
-                postProcessUserRepositories(transmittedResults, transmittedCallback, j);
+                postProcessUserRepositoriesAsync(transmittedResults, j, transmittedCallback);
             });
             return;
         }

@@ -16,12 +16,16 @@ class GithubGraph{
         }
     }
 
+    addLink(link){
+        this.links.push(link);
+    }
+
     formUserNode(user, avatar_url){
         return {"id": user, "type": "user", "avatar_url": avatar_url};
     }
 
-    formRepositoryNode(repo, owner){
-        return {"id": repo, "type": "repo", "owner": owner}
+    formRepositoryNode(repo, owner, isFork){
+        return {"id": repo, "type": "repo", "owner": owner, "isFork": isFork}
     }
 
     addUser(user, avatar_url){
@@ -39,17 +43,19 @@ class GithubGraph{
             throw "cannot add repositories of user not already in the graph";
         }
         for (var repo in repos){
-            this.addNodeIfAbsent(this.formRepositoryNode(repos[repo].id, repos[repo].owner));
-            this.links.push({"source": user, "target": repos[repo].id, "viaFork":repos[repo].viaFork});
+            this.addNodeIfAbsent(this.formRepositoryNode(repos[repo].id, repos[repo].owner, repos[repo].isFork));
+            this.addLink({"source": user, "target": repos[repo].id, "viaFork":repos[repo].viaFork});
         }
     }
 
     addContributorsOfRepository(repo, owner, users){
         // directly reads the JSON-parsed answer of the API v3 response
+        // we assume the repo is not forked from another repo and we know the
+        // contributors we get in this case did not contribute only on some fork.
         this.addRepository(repo, owner);
         for (var user in users){
             this.addNodeIfAbsent(this.formUserNode(users[user]["login"], users[user]["avatar_url"]));
-            this.links.push({"source": users[user]["login"], "target": repo, "viaFork": false});
+            this.addLink({"source": users[user]["login"], "target": repo, "viaFork": false});
         }
     }
 }

@@ -83,6 +83,11 @@ function postProcessUserRepositoriesAsync(result, i, callback) {
     // i is set to 0 when the function is called from getUserRepositoriesAsync.
     for (let j = i; j < result.length; j++){
         var t = result[j];
+        if (!t){
+            result.splice(j, 1);
+            j--;
+            continue;
+        }  // I get some null results from the query
         if (!t.node.isFork){
             result[j] = {
                 "id": t.node.name, "owner": t.node.owner.login, "isFork": false, "viaFork": false
@@ -120,7 +125,7 @@ function getUserRepositoriesAsync(username, callback) {
         {"query":`query {
             user(login:"` + username + `") {
                 login
-                repositories(first: 100) {
+                repositories(first: 100){
                     edges {
                         node {
                             name

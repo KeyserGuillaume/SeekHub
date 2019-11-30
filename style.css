@@ -1,0 +1,72 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    border: 0;
+    overflow: hidden; /*  Disable scrollbars */
+    display: block;  /* No floating content on sides */
+    }
+
+svg{
+    margin: 0px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* alternative approach, but not working right now
+#global-container{
+    margin: 0px;
+    padding: 0px;
+    display: flex;
+    flex-direction: column-reverse;
+    background-color: magenta;
+    width: 100vw;
+    height: 100vh;
+}
+
+#menu-bar-container {
+    margin: 0px;
+    padding: 0px;
+    background-color: grey;
+    height: 50px;
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: row;
+}*/
+
+#menu-bar-container {
+    margin: 0px;
+    padding: 0px;
+    background-color: rgba(0, 0, 0, 0);
+    height: 50px;
+    width: 100vw;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: row;
+}
+
+.button, .selected-button{
+    width: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-radius : 5px;
+    border:1px black solid;
+    text-align: center;
+}
+
+.button{
+    background-color: #3333cc;
+}
+
+.selected-button{
+    background-color: #6699ff;
+}
+
+.button-text {
+text-align: center;
+}

@@ -22,10 +22,9 @@
         <script src=token.js></script>
         <svg id=svg width="960" height="600"></svg>
         <script src="https://d3js.org/d3.v4.min.js"></script>
-        <script src=github_api.js></script>
+        <script src=graph.js></script>
         <script src=d3_logic.js></script>
         <script src=requests.js></script>
-        <script src=main.js></script>
         <script>
             //var user = prompt("Please enter someone's user login", "mathieuorhan");
             //var user = "mathieuorhan";
@@ -33,7 +32,7 @@
             var G = new GithubGraph();
             //extendGraphWithUser(user);
             //updateGraph(G);
-            extendGraphWithRepos(user, true);
+            G.extendNodeWithRepos(user, true);
         </script>
 	</body>
 </html>

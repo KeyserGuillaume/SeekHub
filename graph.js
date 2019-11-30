@@ -4,6 +4,13 @@ class GithubGraph{
         this.links = [];
     }
 
+    getCopy(){
+        return {
+            "nodes": this.nodes.slice(0, this.nodes.length), 
+            "links": this.links.slice(0, this.links.length)
+        };
+    }
+
     isAbsent(node){
         return typeof this.nodes.find(function(element){
             return element.id == node.id;
@@ -57,5 +64,46 @@ class GithubGraph{
             this.addNodeIfAbsent(this.formUserNode(users[user]["login"], users[user]["avatar_url"]));
             this.addLink({"source": users[user]["login"], "target": repo, "viaFork": false});
         }
+    }
+
+    extendNode(selectedNode) {
+        if (selectedNode.type == "user"){
+            this.extendNodeWithRepos(selectedNode.id);
+        }
+        else if (!selectedNode.isFork){
+            this.extendNodeWithUsers(selectedNode.owner, selectedNode.id);
+        }
+    }
+    
+    extendNodeWithRepos(user, addUser=false){
+        // this function copies the code of extendGraphWithUser, can some fix be found ?
+        // having G be a global variable is terrible, change that !
+        if (addUser){
+            getUserAvatarUrlAsync(user, (function(res){
+                this.addUser(user, res);
+                updateGraph(this.getCopy());
+                this.extendNodeWithRepos(user);
+            }).bind(this));
+        }
+        else{
+            getUserRepositoriesAsync(user, (function(res){
+                this.addRepositoriesOfUser(user, res);
+                updateGraph(this.getCopy());
+            }).bind(this));
+        }
+    }
+    
+    extendWithUser(user){
+        getUserAvatarUrlAsync(user, (function(res){
+            this.addUser(user, res);
+            updateGraph(this.getCopy());
+        }).bind(this));
+    }
+    
+    extendNodeWithUsers(owner, repo){
+        getRepositoryContributorsAsync(owner, repo, (function(res){
+            this.addContributorsOfRepository(repo, owner, res);
+            updateGraph(this.getCopy());
+        }).bind(this));
     }
 }

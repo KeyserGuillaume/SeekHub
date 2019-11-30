@@ -44,7 +44,7 @@ function updateGraph(graph) {
     .attr("dy", ".35em")
     .text(function(d) { return d.id });
 
-    node.on('click', extendGraph)
+    node.on('click', G.extendNode.bind(G));
 
     simulation
         .nodes(graph.nodes)

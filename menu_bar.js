@@ -46,6 +46,6 @@ class MenuBar extends React.Component {
 }
 
 ReactDOM.render(e(MenuBar, {
-    "onClickActions": ["extend", "focus"],
+    "onClickActions": ["extend", "focus", "hyperlink"],
     "functionCalls": {"random walk": G.doRandomWalkIteration.bind(G)}
 }), domContainer);

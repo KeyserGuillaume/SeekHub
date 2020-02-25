@@ -56,6 +56,12 @@ class GithubGraph{
         }) == 'undefined';
     }
 
+    isNewLink(link){
+        return typeof this.links.find(function(element){
+            return element.source == link.source && element.target == link.target;
+        }) == 'undefined';
+    }
+
     addNewNode(node){
         this.nodes.push(node);
     }
@@ -117,9 +123,12 @@ class GithubGraph{
         this.addRepository(repo, owner);
         for (var user in users){
             var userNode = this.formUserNode(users[user]["login"], users[user]["avatar_url"]);
+            var link = {"source": users[user]["login"], "target": repo, "viaFork": false};
             if (this.isNew(userNode)){
                 this.addNewNode(userNode);
-                this.addNewLink({"source": users[user]["login"], "target": repo, "viaFork": false});
+                this.addNewLink(link);
+            } else if (this.isNewLink(link)) {
+                this.addNewLink(link);
             }
         }
     }

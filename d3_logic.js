@@ -33,7 +33,10 @@ function updateGraph(graph) {
         .on("drag", dragged)
         .on("end", dragended));
 
-    node.append("image")
+    node.append("a")
+    .attr("xlink:href", getNodeLinkUrl)
+    .attr("target", "_blank")
+    .append("image")
     .attr("xlink:href", getNodeImageUrl)
     .attr("x", -8)
     .attr("y", -8)
@@ -46,13 +49,18 @@ function updateGraph(graph) {
     .text(function(d) { return d.id });
 
     node.on('click', function(n){
+        if (selectedOnClickAction != "hyperlink"){
+            d3.event.preventDefault();
+        }
         if (selectedOnClickAction == "extend"){
             G.extendNode(n, function(){});
-        }
-        else if (selectedOnClickAction == "focus"){
+            updateGraph(G.getVersionForD3Force());
+        } else if (selectedOnClickAction == "focus"){
             G.setFocus(n.id);
+            updateGraph(G.getVersionForD3Force());
+            simulation.alphaTarget(0.3).restart();
+            setTimeout(function(){simulation.alphaTarget(0).restart();}, 2000);
         }
-        updateGraph(G.getVersionForD3Force());
     });
 
     if (graph.nodes.length > 0){
@@ -108,6 +116,15 @@ function getNodeImageUrl(d) {
     } 
     else {
         return d.avatarUrl;
+    }
+}
+
+function getNodeLinkUrl(d) {
+    if (d.type == "repo"){
+        return "https://github.com/" + d.owner + "/" + d.id;
+    } 
+    else {
+        return "https://github.com/" + d.id;
     }
 }
 

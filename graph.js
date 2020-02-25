@@ -35,7 +35,10 @@ class GithubGraph{
     }
 
     doRandomWalkIteration(nbIter = 10){
-        if (nbIter < 0) return;
+        if (nbIter < 0) {
+            simulation.alphaTarget(0).restart();
+            return;
+        }
         // start from the focused node
         var walker = this.nodes[this.focusedNodeIndex];
         let next = this.getRandomNeighbor(walker.id);
@@ -48,6 +51,7 @@ class GithubGraph{
             setTimeout((function(){this.doRandomWalkIteration(nbIter-1);}).bind(this), 1000);
 
         }).bind(this));
+        
     }
 
     isNew(node){

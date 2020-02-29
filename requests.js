@@ -50,8 +50,12 @@ function getUserAvatarUrlAsync(username, callback){
             "variables":{}
         },
         function(res){
-            var result = JSON.parse(res).data.user.avatarUrl;
-            callback(result);
+            try {
+                var result = JSON.parse(res).data.user.avatarUrl;
+                callback(result);
+            } catch {
+                console.log(JSON.parse(res).errors[0].message);
+            }
         });
 }
 
@@ -64,6 +68,7 @@ function getRepositoryParentAsync(owner, repo, callback){
                     name
                     owner{login}
                     isFork
+                    forkCount
                   }
               }
             }`
@@ -83,26 +88,26 @@ function postProcessUserRepositoriesAsync(result, i, callback) {
     // i is set to 0 when the function is called from getUserRepositoriesAsync.
     for (let j = i; j < result.length; j++){
         var t = result[j];
-        if (!t){
+        if (!t || (t.node.isFork && !t.node.parent)){
             result.splice(j, 1);
             j--;
             continue;
         }  // I get some null results from the query
         if (!t.node.isFork){
             result[j] = {
-                "id": t.node.name, "owner": t.node.owner.login, "isFork": false, "viaFork": false
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": false, "viaFork": false, "forkCount": t.node.forkCount
             };
         } else if(t.node.name != t.node.parent.name){
             result.splice(j+1, 0, t);
             result[j] = {
-                "id": t.node.name, "owner": t.node.owner.login, "isFork": true, "viaFork": false
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": true, "viaFork": false, "forkCount": t.node.forkCount
             };
             result[j+1].node.name = t.node.parent.name;
             postProcessUserRepositoriesAsync(result, j+1, callback);
             return;
         } else if (t.node.name == t.node.parent.name && !t.node.parent.isFork){
             result[j] = {
-                "id": t.node.name, "owner": t.node.parent.owner.login, "viaFork": true
+                "id": t.node.name, "owner": t.node.parent.owner.login, "viaFork": true, "forkCount": t.node.parent.forkCount
             };
         } else {
             // index j is for a repo which was forked from some other forked repo
@@ -137,7 +142,9 @@ function getUserRepositoriesAsync(username, callback) {
                                 name
                                 owner{login}
                                 isFork
+                                forkCount
                               }
+                            forkCount
                         }
                     }
                 }
@@ -147,6 +154,25 @@ function getUserRepositoriesAsync(username, callback) {
         function(res){
             var result = JSON.parse(res);   
             result = result.data.user.repositories.edges;
+            postProcessUserRepositoriesAsync(result, 0, callback);
+        });
+}
+
+function getUserRepositoryCountAsync(username, callback) {
+    if (username == "dependabot-preview[bot]" || username == "dependabot[bot]") return;
+    sendQueryToGithubAPIv4(
+        {"query":`query {
+            user(login:"` + username + `") {
+                login
+                repositories{
+                    totalCount
+                }
+            }
+        }`
+        },
+        function(res){
+            var result = JSON.parse(res);
+            result = result.data.user.repositories.totalCount;
             postProcessUserRepositoriesAsync(result, 0, callback);
         });
 }

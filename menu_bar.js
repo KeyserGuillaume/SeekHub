@@ -48,20 +48,28 @@ class MenuBar extends React.Component {
 
 function download(){
     // uses filesaver.js
-    var svg_data = document.getElementById("svg").innerHTML //put id of your svg element here
+    var svg_data = document.getElementById("svg-container").innerHTML; //put id of your svg element here
 
-    var head = '<svg title="graph" version="1.1" xmlns="http://www.w3.org/2000/svg">'
+    var head = '<svg title="graph" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">';
 
-    //if you have some additional styling like graph edges put them inside <style> tag
-    // yes I do: I am missing the images and the links.
-    var style = '<style>circle {cursor: pointer;stroke-width: 1.5px;}text {font: 10px arial;}path {stroke: DimGrey;stroke-width: 1.5px;}</style>'
+    // if you have some additional styling like graph edges put them inside <style> tag
+    var style = '<style>circle {cursor: pointer;stroke-width: 1.5px;}text {font: 10px arial;}path {stroke: DimGrey;stroke-width: 1.5px;} line {stroke: #aaa;} .dashed-line { stroke-dasharray: 3, 3;}</style> ';
 
-    var full_svg = head +  style + svg_data + "</svg>"
+    var full_svg = head +  style + svg_data + "</svg>";
     var blob = new Blob([full_svg], {type: "image/svg+xml"});  
     saveAs(blob, "graph.svg");
 }
 
 ReactDOM.render(e(MenuBar, {
-    "onClickActions": ["extend", "focus", "hyperlink"],
-    "functionCalls": {"random walk": G.doRandomWalkIteration.bind(G), "download": download}
+    "onClickActions": [
+        "extend", 
+        "focus", 
+        "hyperlink"
+    ],
+    "functionCalls": {
+        "random walk": G.doRandomWalkIteration.bind(G), 
+        "download": download, 
+        "BFS": G.BFS.bind(G),
+        "GWoF": G.greedyWalkOfFame.bind(G)
+    }
 }), domContainer);

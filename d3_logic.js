@@ -1,15 +1,34 @@
+var svg = document.getElementById("svg-container");
+svg.setAttribute("width", window.innerWidth);
+svg.setAttribute("height", window.innerHeight);
+
 var svg = document.getElementById("svg");
 svg.setAttribute("width", window.innerWidth);
 svg.setAttribute("height", window.innerHeight);
 
-svg = d3.select("svg");
-var width = +svg.attr("width"),
-    height = +svg.attr("height");
+
+svg_container = d3.select("#svg-container");
+svg = d3.select("#svg");
+var width = svg.attr("width"),
+    height = svg.attr("height");
+
+svg.attr({
+        "width": "100%",
+        "height": "100%"
+      });
+//svg.attr("viewBox", "0 0 " + width + " " + height )
+//    .attr("preserveAspectRatio", "xMidYMid meet");
+
+//svg.attr("preserveAspectRatio", "xMinYMin meet")
+svg_container.classed("svg-content-responsive", true)
+             .call(d3.zoom().on("zoom", function () {
+                 svg.attr("transform", d3.event.transform)
+              }));
 
 var simulation = d3.forceSimulation()
     .force("link", d3.forceLink().id(function(d) { return d.id; }))
     //.force("collision", d3.forceCollide(20))
-    .force("charge", d3.forceManyBody().strength(-500)); // was -500 when no collision
+    .force("charge", d3.forceManyBody().strength(-500).distanceMax(500)); // was -500 when no collision
     //.force("center", d3.forceCenter(width / 2, height / 2));
 
 function updateGraph(graph) {

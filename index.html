@@ -27,7 +27,7 @@
 	<body>
         <script src='https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js'></script>
         <script src=token.js></script>
-        
+
         <svg id=svg-container>
             <g id=svg></g>
         </svg>
@@ -42,6 +42,7 @@
 
         <!-- Initialization. -->
         <script>
+            const TOKEN = "b8f1a9050c5687be644cbecc3b5ebda05cc99cea";
             var user = prompt("Please enter someone's user login", "KeyserGuillaume");
             //var user = "KeyserGuillaume";
             var G = new GithubGraph();

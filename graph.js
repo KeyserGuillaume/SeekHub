@@ -70,8 +70,8 @@ class GithubGraph{
     }
 
     BFS(to_visit=[], visited={}, beginning=true){
-        if (beginning) to_visit = this.nodes[this.anchor1NodeIndex];
-        if (to_visit.length > 1000 || to_visit.length == 0) {
+        if (beginning) to_visit = [this.nodes[this.anchor1NodeIndex]];
+        if (to_visit.length > 2000 || to_visit.length == 0) {
             simulation.alphaTarget(0).restart();
             return;
         }
@@ -86,11 +86,11 @@ class GithubGraph{
             for (let i = 0; i < neighbors.length; i++){
                 to_visit.push(this.getNodeById(neighbors[i]));
             }
-            this.BFS(to_visit, visited, false);
+            setTimeout((function(){this.BFS(to_visit, visited, false)}).bind(this), 400);
         }).bind(this));
     }
 
-    greedyWalkOfFame(previous=null, visited={}){
+    greedyWalkOfFame(previous=null, visited={}, callback=null){
         var count = 0;
         for (var x in visited){
             count++;
@@ -140,6 +140,10 @@ class GithubGraph{
             simulation.alphaTarget(0.3).restart();
             updateGraph(this.getVersionForD3Force());
             visited[next.id] = true;
+            if (callback){
+                callback(next);
+                return;
+            }
             this.greedyWalkOfFame(next, visited);
         }).bind(this));
     }
@@ -148,8 +152,49 @@ class GithubGraph{
         var t = prompt("Write a user's login", "mathieuorhan");
         this.extendWithUser(t, (function(){
             this.setAnchor2(t);
-            this.extendNode(this.getNodeById(t), function(){});
+            this.extendNode(this.getNodeById(t), this.bidirectionalGreedyWalkOfFame.bind(this));
         }).bind(this));
+    }
+
+    bidirectionalGreedyWalkOfFame(previous1=null, previous2=null, visited1={}, visited2={}){
+        if (previous1 == null) {
+            previous1 = this.nodes[this.anchor1NodeIndex];
+            visited1[previous1.id] = 0;
+        }
+        if (previous2 == null) {
+            previous2 = this.nodes[this.anchor2NodeIndex];
+            visited2[previous2.id] = 0;
+        }
+        var count1 = 0;
+        for (var x in visited1){
+            count1++;
+        }
+        var count2 = 0;
+        for (var x in visited2){
+            count2++;
+        }
+        if (count1 <= count2){
+            this.greedyWalkOfFame(previous1, visited1, (function(next){
+                var neighbors = this.getNeighbors(next.id);
+                for (var n in neighbors){
+                    if (visited2[neighbors[n]]) {
+                        return;
+                    }
+                }
+                this.bidirectionalGreedyWalkOfFame(next, previous2, visited1, visited2);
+            }).bind(this));
+        } else {
+            this.greedyWalkOfFame(previous2, visited2, (function(next){
+                var neighbors = this.getNeighbors(next.id);
+                for (var n in neighbors){
+                    if (visited1[neighbors[n]]) {
+                        return;
+                    }
+                }
+                this.bidirectionalGreedyWalkOfFame(previous1, next, visited1, visited2);
+            }).bind(this));
+        }
+
     }
 
     isNew(node){

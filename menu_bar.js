@@ -68,9 +68,9 @@ ReactDOM.render(e(MenuBar, {
     ],
     "functionCalls": {
         "random walk": G.doRandomWalkIteration.bind(G), 
-        "download": download, 
-        "BFS": G.BFS.bind(G),
         "GWoF": G.greedyWalkOfFame.bind(G),
-        "find path": G.findPath.bind(G)
+        "find path": G.findPath.bind(G),
+        "BFS": G.BFS.bind(G),
+        "download": download
     }
 }), domContainer);

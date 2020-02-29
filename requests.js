@@ -50,12 +50,12 @@ function getUserAvatarUrlAsync(username, callback){
             "variables":{}
         },
         function(res){
-            //try {
+            try {
                 var result = JSON.parse(res).data.user.avatarUrl;
                 callback(result);
-            //} catch {
-              //  console.log(JSON.parse(res).errors[0].message);
-            //}
+            } catch {
+                alert(JSON.parse(res).errors[0].message);
+            }
         });
 }
 

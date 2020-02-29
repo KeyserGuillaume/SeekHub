@@ -39,15 +39,15 @@ function updateGraph(graph) {
     .attr("class",  getLinkClass)
     .merge(link);
 
-    var node = svg.selectAll(".nodes,.focused-node")
+    var node = svg.selectAll(".nodes,.anchor-node")
     .data(graph.nodes)
 
     node.exit().remove();
     
     node = node.enter().append("g")
     .merge(node)
-    .attr("class", getNodeClass)
-    .call(d3.drag()
+    .attr("class", getNodeClass);
+    node.call(d3.drag()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
@@ -74,23 +74,13 @@ function updateGraph(graph) {
         if (selectedOnClickAction == "extend"){
             G.extendNode(n, function(){});
             updateGraph(G.getVersionForD3Force());
-        } else if (selectedOnClickAction == "focus"){
-            G.setFocus(n.id);
+        }/* else if (selectedOnClickAction == "focus"){
+            G.setAnchor1(n.id);
             updateGraph(G.getVersionForD3Force());
             simulation.alphaTarget(0.3).restart();
             setTimeout(function(){simulation.alphaTarget(0).restart();}, 2000);
-        }
+        }*/
     });
-
-    if (graph.nodes.length > 0){
-        // we put a centering force only on the node element in focus
-        var centeringOneNode = d3.forceCenter(width / 2, height / 2);
-        var init = centeringOneNode.initialize;
-        centeringOneNode.initialize = function(nodes){
-            init(nodes.filter(function(n, i){return n.hasFocus;}))
-        }
-        simulation.force("center", centeringOneNode);
-    }
 
     simulation
         .nodes(graph.nodes)
@@ -125,8 +115,10 @@ function dragged(d) {
 
 function dragended(d) {
     if (!d3.event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
+    if (!d.isAnchor1 && !d.isAnchor2){
+        d.fx = null;
+        d.fy = null;
+    }
 }
 
 function getNodeImageUrl(d) {
@@ -148,8 +140,8 @@ function getNodeLinkUrl(d) {
 }
 
 function getNodeClass(d) {
-    if (d.hasFocus){
-        return "focused-node";
+    if (d.isAnchor1 || d.isAnchor2){
+        return "anchor-node";
     } else {
         return "nodes";
     }

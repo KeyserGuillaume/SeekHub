@@ -63,13 +63,14 @@ function download(){
 ReactDOM.render(e(MenuBar, {
     "onClickActions": [
         "extend", 
-        "focus", 
+      //  "focus", 
         "hyperlink"
     ],
     "functionCalls": {
         "random walk": G.doRandomWalkIteration.bind(G), 
         "download": download, 
         "BFS": G.BFS.bind(G),
-        "GWoF": G.greedyWalkOfFame.bind(G)
+        "GWoF": G.greedyWalkOfFame.bind(G),
+        "find path": G.findPath.bind(G)
     }
 }), domContainer);

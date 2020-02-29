@@ -4,12 +4,18 @@ class GithubGraph{
     constructor(){
         this.nodes = [];
         this.links = [];
+        this.anchor1NodeIndex = null;
+        this.anchor2NodeIndex = null;
     }
 
     getVersionForD3Force(){
-        if (!this.focusedNodeIndex && this.focusedNodeIndex !== 0){
-            this.focusedNodeIndex = 0;
-        this.nodes[0].hasFocus = true;
+        if (!this.anchor1NodeIndex && this.anchor1NodeIndex !== 0){
+            this.anchor1NodeIndex = 0;
+            this.nodes[0].isAnchor1 = true;
+            this.nodes[0].x = width/2;
+            this.nodes[0].y = height/2;
+            this.nodes[0].fx = width/2;
+            this.nodes[0].fy = height/2;
         }
         return {
             "nodes": this.nodes.slice(0, this.nodes.length), 
@@ -43,19 +49,17 @@ class GithubGraph{
             return;
         }
         // start from the focused node
-        var walker = this.nodes[this.focusedNodeIndex];
+        var walker = this.nodes[this.anchor1NodeIndex];
         visited[walker.is] = true;
         // take random neighbor, one we have not visited yet if possible
         var neighbors = this.getNeighbors(walker.id);
         let next = this.getRandomNeighbor(walker.id);
-        console.log(neighbors.length);
         var preferredNeighbors = neighbors.filter(function(n){return !visited[n];});
-        console.log("reduced to ", preferredNeighbors.length);
         if (preferredNeighbors.length > 0){
             var randomIndex = Math.round(Math.random() * (preferredNeighbors.length - 1));
             next = preferredNeighbors[randomIndex];
         }
-        this.setFocus(next);
+        this.setAnchor1(next);
         visited[next] = true;
         next = this.getNodeById(next);
         this.extendNode(next, (function(){
@@ -66,7 +70,7 @@ class GithubGraph{
     }
 
     BFS(to_visit=[], visited={}, beginning=true){
-        if (beginning) to_visit = this.nodes[this.focusedNodeIndex];
+        if (beginning) to_visit = this.nodes[this.anchor1NodeIndex];
         if (to_visit.length > 1000 || to_visit.length == 0) {
             simulation.alphaTarget(0).restart();
             return;
@@ -92,7 +96,7 @@ class GithubGraph{
             count++;
         }
         if (count > 10) return;
-        if (previous == null) previous = this.nodes[this.focusedNodeIndex];
+        if (previous == null) previous = this.nodes[this.anchor1NodeIndex];
         var neighbors = this.getNeighbors(previous.id);
         if (previous.type == "user"){
             // determine repository of maximum fork counts
@@ -140,6 +144,14 @@ class GithubGraph{
         }).bind(this));
     }
 
+    findPath(){
+        var t = prompt("Write a user's login", "mathieuorhan");
+        this.extendWithUser(t, (function(){
+            this.setAnchor2(t);
+            this.extendNode(this.getNodeById(t), function(){});
+        }).bind(this));
+    }
+
     isNew(node){
         return typeof this.nodes.find(function(element){
             return element.id == node.id;
@@ -171,28 +183,58 @@ class GithubGraph{
             "id": user, 
             "type": "user", 
             "avatarUrl": avatarUrl, 
-            "hasFocus": false
+            "isAnchor1": false, 
+            "isAnchor2": false,
+            "repositoryCount": null    // this attribute becomes available after a second query, made for every user
         };
     }
 
     formRepositoryNode(repo, owner, isFork, forkCount){
         return {
             "id": repo,
-            "type": "repo", 
+            "type": "repo",
             "owner": owner,
             "isFork": isFork,
-            "hasFocus": false, 
+            "isAnchor1": false, 
+            "isAnchor2": false, 
             "forkCount": forkCount
         };
     }
 
-    setFocus(nodeId){
+    setAnchor1(nodeId){
         // this will break if we delete any node !
-        if(this.focusedNodeIndex || this.focusedNodeIndex === 0){
-            this.nodes[this.focusedNodeIndex].hasFocus = false;
+        if(this.anchor1NodeIndex || this.anchor1NodeIndex === 0){
+            var previous = this.nodes[this.anchor1NodeIndex];
+            previous.isAnchor1 = false;
+            previous.fx = null;
+            previous.fy = null;
         }  
-        this.focusedNodeIndex = this.nodes.findIndex(function(n){ return n.id == nodeId;});
-        this.nodes[this.focusedNodeIndex].hasFocus = true;
+        this.anchor1NodeIndex = this.nodes.findIndex(function(n){ return n.id == nodeId;});
+        var anchorNode = this.nodes[this.anchor1NodeIndex];
+        anchorNode.isAnchor1 = true;
+        anchorNode.x = width/2;
+        anchorNode.y = height/2;
+        anchorNode.fx = width/2;
+        anchorNode.fy = height/2;
+        updateGraph(this.getVersionForD3Force());
+    }
+
+    setAnchor2(nodeId){
+        // this will break if we delete any node !
+        if(this.anchor2NodeIndex || this.anchor2NodeIndex === 0){
+            var previous = this.nodes[this.anchor2NodeIndex];
+            previous.isAnchor2 = false;
+            previous.fx = null;
+            previous.fy = null;
+        }  
+        this.anchor2NodeIndex = this.nodes.findIndex(function(n){ return n.id == nodeId;});
+        var anchorNode = this.nodes[this.anchor2NodeIndex];
+        anchorNode.isAnchor2 = true;
+        anchorNode.x = -width/2;
+        anchorNode.y = height/2;
+        anchorNode.fx = -width/2;
+        anchorNode.fy = height/2;
+        updateGraph(this.getVersionForD3Force());
     }
 
     addUser(user, avatar_url){
@@ -213,8 +255,8 @@ class GithubGraph{
             var repoNode = this.formRepositoryNode(repos[repo].id, repos[repo].owner, repos[repo].isFork, repos[repo].forkCount);
             if (this.isNew(repoNode)){
                 this.addNewNode(repoNode);
-                this.addNewLink({"source": user, "target": repos[repo].id, "viaFork":repos[repo].viaFork});
             }
+            this.addNewLink({"source": user, "target": repos[repo].id, "viaFork":repos[repo].viaFork});
         }
     }
 
@@ -261,10 +303,11 @@ class GithubGraph{
         }
     }
     
-    extendWithUser(user){
+    extendWithUser(user, callback){
         getUserAvatarUrlAsync(user, (function(res){
             this.addUser(user, res);
             updateGraph(this.getVersionForD3Force());
+            callback();
         }).bind(this));
     }
     

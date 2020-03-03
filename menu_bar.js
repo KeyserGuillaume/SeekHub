@@ -11,33 +11,35 @@ class MenuBar extends React.Component {
     render(){
         var L = [];
         for (let actionIndex in this.props.onClickActions){
-            let action = this.props.onClickActions[actionIndex];
+            let buttonData = this.props.onClickActions[actionIndex];
             L.push(
                 e(
                     'button',
                     {
                         onClick: (function(){
-                            this.setState({"selectedOnClickAction": action});
-                            selectedOnClickAction = action
+                            this.setState({"selectedOnClickAction": buttonData.name});
+                            selectedOnClickAction = buttonData.name
                         }).bind(this), 
-                        className: action == this.state.selectedOnClickAction ? "selected-button" : "button"
+                        className: buttonData.name == this.state.selectedOnClickAction ? "selected-button" : "button",
+                        title: buttonData.hovertext
                     },
-                    this.props.onClickActions[actionIndex]
+                    this.props.onClickActions[actionIndex].name
                 )
             );
         }
         for (let callIndex in this.props.functionCalls){
-            let functionCall = this.props.functionCalls[callIndex];
+            let buttonData = this.props.functionCalls[callIndex];
             L.push(
                 e(
                     'button',
                     {
                         onClick: (function(){
-                            functionCall();
+                            buttonData.call();
                         }), 
-                        className: "button"
+                        className: "button",
+                        title: buttonData.hovertext
                     },
-                    callIndex
+                    buttonData.name
                 )
             );
         }
@@ -62,15 +64,15 @@ function download(){
 
 ReactDOM.render(e(MenuBar, {
     "onClickActions": [
-        "extend", 
+        {name:"extend", hovertext:"With this mode, clicking on a node calls the GitHub API and adds a subset of its neighbors"}, 
       //  "focus", 
-        "hyperlink"
+        {name:"hyperlink", hovertext:"With this mode, clicking on a node opens the corresponding GitHub page in a new tab"}
     ],
-    "functionCalls": {
-        "random walk": G.doRandomWalkIteration.bind(G), 
-        "GWoF": G.greedyWalkOfFame.bind(G),
-        "find path": G.findPath.bind(G),
-        "BFS": G.BFS.bind(G),
-        "download": download
-    }
+    "functionCalls": [
+        {name:"random walk", call:G.doRandomWalkIteration.bind(G), hovertext:"Start from starting point a random walk on the graph"}, 
+        {name:"GWoF", call:G.greedyWalkOfFame.bind(G), hovertext:"Start a greedy random walk visiting large projects"},
+        {name:"find path", call:G.findPath.bind(G), hovertext:"Look for a path linking starting point to another user"},
+        {name:"BFS", call:G.BFS.bind(G), hovertext:"If you know what BFS is, then you also know that it is a bad idea here"},
+        {name:"download", call:download, hovertext:"Download the current view as an svg document"}
+    ]
 }), domContainer);

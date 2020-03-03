@@ -69,24 +69,24 @@ class GithubGraph{
         }).bind(this));   
     }
 
-    BFS(to_visit=[], visited={}, beginning=true){
-        if (beginning) to_visit = [this.nodes[this.anchor1NodeIndex]];
-        if (to_visit.length > 2000 || to_visit.length == 0) {
+    BFS(toVisit=[], visited={}, beginning=true){
+        if (beginning) toVisit = [this.nodes[this.anchor1NodeIndex]];
+        if (toVisit.length > 2000 || toVisit.length == 0) {
             simulation.alphaTarget(0).restart();
             return;
         }
-        var next = to_visit[0];
-        to_visit.shift();
-        if (visited[next.id]) this.BFS(to_visit, visited, false);
+        var next = toVisit[0];
+        toVisit.shift();
+        if (visited[next.id]) this.BFS(toVisit, visited, false);
         visited[next.id] = true;
         this.extendNode(next, (function(){
             simulation.alphaTarget(0.3).restart();
             updateGraph(this.getVersionForD3Force());
             var neighbors = this.getNeighbors(next.id);
             for (let i = 0; i < neighbors.length; i++){
-                to_visit.push(this.getNodeById(neighbors[i]));
+                toVisit.push(this.getNodeById(neighbors[i]));
             }
-            setTimeout((function(){this.BFS(to_visit, visited, false)}).bind(this), 400);
+            setTimeout((function(){this.BFS(toVisit, visited, false)}).bind(this), 400);
         }).bind(this));
     }
 
@@ -156,7 +156,7 @@ class GithubGraph{
         }).bind(this));
     }
 
-    bidirectionalGreedyWalkOfFame(previous1=null, previous2=null, visited1={}, visited2={}){
+    bidirectionalGreedyWalkOfFame(previous1=null, previous2=null, visited1={}, visited2={}, color={}){
         if (previous1 == null) {
             previous1 = this.nodes[this.anchor1NodeIndex];
             visited1[previous1.id] = 0;
@@ -177,21 +177,25 @@ class GithubGraph{
             this.greedyWalkOfFame(previous1, visited1, (function(next){
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
-                    if (visited2[neighbors[n]]) {
-                        return;
-                    }
+                    if (color[neighbors[n]] == 2) return;
+                    color[neighbors[n]] = 1;
+//                    if (visited2[neighbors[n]]) {
+  //                      return;
+    //                }
                 }
-                this.bidirectionalGreedyWalkOfFame(next, previous2, visited1, visited2);
+                this.bidirectionalGreedyWalkOfFame(next, previous2, visited1, visited2, color);
             }).bind(this));
         } else {
             this.greedyWalkOfFame(previous2, visited2, (function(next){
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
-                    if (visited1[neighbors[n]]) {
-                        return;
-                    }
+                    if (color[neighbors[n]] == 1) return;
+                    color[neighbors[n]] = 2;
+//                    if (visited1[neighbors[n]]) {
+    //                    return;
+  //                  }
                 }
-                this.bidirectionalGreedyWalkOfFame(previous1, next, visited1, visited2);
+                this.bidirectionalGreedyWalkOfFame(previous1, next, visited1, visited2, color);
             }).bind(this));
         }
 

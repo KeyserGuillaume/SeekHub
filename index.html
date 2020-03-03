@@ -43,11 +43,9 @@
         <!-- Initialization. -->
         <script>
             const TOKEN = "b8f1a9050c5687be644cbecc3b5ebda05cc99cea";
-            var user = prompt("Please enter someone's user login", "KeyserGuillaume");
-            //var user = "KeyserGuillaume";
+            var user = prompt("Please enter someone's user login for the starting point. \nThen try clicking on the nodes, dragging them back and \nforth, zooming in and out, and test some of the buttons below...", 
+            "KeyserGuillaume");
             var G = new GithubGraph();
-            //extendGraphWithUser(user);
-            //updateGraph(G);
             G.extendNodeWithRepos(user, function(){}, true);
         </script>
 

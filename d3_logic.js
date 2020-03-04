@@ -16,10 +16,6 @@ svg.attr({
         "width": "100%",
         "height": "100%"
       });
-//svg.attr("viewBox", "0 0 " + width + " " + height )
-//    .attr("preserveAspectRatio", "xMidYMid meet");
-
-//svg.attr("preserveAspectRatio", "xMinYMin meet")
 svg_container.classed("svg-content-responsive", true)
              .call(d3.zoom().on("zoom", function () {
                  svg.attr("transform", d3.event.transform)
@@ -34,10 +30,10 @@ var simulation = d3.forceSimulation()
 function updateGraph(graph) {
 
     var link = svg.selectAll(".continuous-line,.dashed-line")
-    .data(graph.links);
+    .data(graph.links)
     link = link.enter().append("line")
+    .merge(link)
     .attr("class",  getLinkClass)
-    .merge(link);
 
     var node = svg.selectAll(".nodes,.anchor-node")
     .data(graph.nodes)
@@ -148,9 +144,5 @@ function getNodeClass(d) {
 }
 
 function getLinkClass(d) {
-    if (d.viaFork){
-        return "dashed-line";
-    } else {
-        return "continuous-line";
-    }
+    return (d.viaFork ? "dashed-line" : "continuous-line") + (d.onShortestPath ? " shortest-path" : "");
 }

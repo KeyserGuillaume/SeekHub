@@ -27,6 +27,12 @@ class GithubGraph{
         return this.nodes.find(function(n){ return n.id == nodeId;})
     }
 
+    getLink(s, t){
+        return this.links.find(function(element){
+            return (element.source.id == s && element.target.id == t) || (element.source.id == t && element.target.id == s);
+        });
+    }
+
     getNeighbors(nodeId){
         return this.links
         .filter(function(link){
@@ -156,10 +162,37 @@ class GithubGraph{
         }).bind(this));
     }
 
+    initializeColor1(color){
+        // do a BFS and give the color 1 to every node seen from anchor 1
+        var visited = {};
+        var toVisit = [this.nodes[this.anchor1NodeIndex]];
+        while (toVisit.length > 0){
+            var next = toVisit[0];
+            toVisit.shift();
+            color[next.id] = 1;
+            var neighbors = this.getNeighbors(next.id);
+            for (let i = 0; i < neighbors.length; i++){
+                if (!visited[neighbors[i]]){
+                    toVisit.push(this.getNodeById(neighbors[i]));
+                }
+            }
+            visited[next.id] = true;
+        }
+    }
+
     bidirectionalGreedyWalkOfFame(previous1=null, previous2=null, visited1={}, visited2={}, color={}){
+        // We expand a node of the graph component of anchor 1 and anchor 2 alternately.
+        // component of anchor 1 has color 1, component of anchor 2 has color 2.
+        // the colors propagate via the edges, that's how we find when the two components
+        // become one connected component.
         if (previous1 == null) {
             previous1 = this.nodes[this.anchor1NodeIndex];
             visited1[previous1.id] = 0;
+            this.initializeColor1(color);
+            if (color[this.nodes[this.anchor2NodeIndex].id] == 1) {
+                this.shortestPathColoring(); 
+                return;
+            }
         }
         if (previous2 == null) {
             previous2 = this.nodes[this.anchor2NodeIndex];
@@ -177,11 +210,11 @@ class GithubGraph{
             this.greedyWalkOfFame(previous1, visited1, (function(next){
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
-                    if (color[neighbors[n]] == 2) return;
+                    if (color[neighbors[n]] == 2) {
+                        this.shortestPathColoring(); 
+                        return;
+                    }
                     color[neighbors[n]] = 1;
-//                    if (visited2[neighbors[n]]) {
-  //                      return;
-    //                }
                 }
                 this.bidirectionalGreedyWalkOfFame(next, previous2, visited1, visited2, color);
             }).bind(this));
@@ -189,16 +222,56 @@ class GithubGraph{
             this.greedyWalkOfFame(previous2, visited2, (function(next){
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
-                    if (color[neighbors[n]] == 1) return;
+                    if (color[neighbors[n]] == 1) {
+                        this.shortestPathColoring(); 
+                        return;
+                    }
                     color[neighbors[n]] = 2;
-//                    if (visited1[neighbors[n]]) {
-    //                    return;
-  //                  }
                 }
                 this.bidirectionalGreedyWalkOfFame(previous1, next, visited1, visited2, color);
             }).bind(this));
         }
 
+    }
+
+    shortestPathColoring(){
+        // the path is shortest in the very small subgraph we got from Github API, in general it is not the shortest
+        // do BFS starting from anchor1
+        var visited = {};
+        var toVisit = [this.nodes[this.anchor1NodeIndex]];
+        var predecesssors = {};
+        var found = false;
+        while (toVisit.length > 0 && !found){
+            var next = toVisit[0];
+            toVisit.shift();
+            var neighbors = this.getNeighbors(next.id);
+            for (let i = 0; i < neighbors.length; i++){
+                if (!visited[neighbors[i]]){
+                    toVisit.push(this.getNodeById(neighbors[i]));
+                    predecesssors[neighbors[i]] = next.id;
+                    if (neighbors[i] == this.nodes[this.anchor2NodeIndex].id){
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            visited[next.id] = true;
+        }
+        if (!found){
+            console.log("The shortest path coloring did not find a path between " + this.nodes[this.anchor1NodeIndex].id + " and " + this.nodes[this.anchor2NodeIndex].id);
+            return;
+        }
+        // now start again in the other direction, ie from anchor 2 back to anchor 1
+        var start = this.nodes[this.anchor2NodeIndex].id;
+        var current = start;
+        var end = this.nodes[this.anchor1NodeIndex].id;
+        while (current != end){
+            var next = predecesssors[current];
+            var link = this.getLink(next, current);
+            link.onShortestPath = true;
+            current = next;
+        }
+        updateGraph(this.getVersionForD3Force());
     }
 
     isNew(node){

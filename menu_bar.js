@@ -71,6 +71,7 @@ ReactDOM.render(e(MenuBar, {
     "functionCalls": [
         {name:"random walk", call:G.doRandomWalkIteration.bind(G), hovertext:"Start from starting point a random walk on the graph"}, 
         {name:"GWoF", call:G.greedyWalkOfFame.bind(G), hovertext:"Start a greedy random walk visiting large projects"},
+        {name:"time machine", call:G.greedyWalkOfFame.bind(G), hovertext:"Start a greedy random walk visiting old projects"},
         {name:"find path", call:G.findPath.bind(G), hovertext:"Look for a path linking starting point to another user"},
         {name:"BFS", call:G.BFS.bind(G), hovertext:"If you know what BFS is, then you also know that it is a bad idea here"},
         {name:"download", call:download, hovertext:"Download the current view as an svg document"}

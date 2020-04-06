@@ -1,3 +1,11 @@
+function minusImportance(node){
+    return (node.type == "user") ? -node.repositoryCount: -node.forkCount;
+}
+
+function earliness(node){
+    return Date.parse(node.createdAt);
+}
+
 class GithubGraph{
     // a graph in which nodes are added, never deleted, and which sends a copy
     // of itself to D3.js
@@ -96,9 +104,13 @@ class GithubGraph{
         }).bind(this));
     }
 
-    greedyWalkOfFame(previous=null, visited={}, callback=null){
-        // if a callback is given, only one step will be done
-        // if no callback is given, then 10 steps will be done
+    gradientDescent(previous=null, visited={}, f, callback=null){
+        // f is a real function defined on all nodes (both
+        // users and repos), and may be null if the data is not there.
+        // this method minimizes f with a gradient descent.
+        // if a callback is given, only one step will be done;
+        // if no callback is given, then steps will be done until
+        // there are 10 entries in visited.
         var count = 0;
         for (var x in visited){
             count++;
@@ -109,44 +121,31 @@ class GithubGraph{
         }
         if (previous == null) previous = this.nodes[this.anchor1NodeIndex];
         var neighbors = this.getNeighbors(previous.id);
-        if (previous.type == "user"){
-            // determine repository of maximum fork counts
-            var maxIndex = -0.5;
-            var max = 0;
-            for (var n in neighbors){
-                var forkCount = this.getNodeById(neighbors[n]).forkCount;
-                if (forkCount > max){
-                    if (visited[neighbors[n]]) continue;
-                    max = forkCount;
-                    maxIndex = n;
-                }
-            }
-        } else {
-            // wait 0.5s if none of the neighbors has a known repository count
-            var ready = false;
-            for (var n in neighbors){
-                var userNode = this.getNodeById(neighbors[n]);
-                if (!visited[userNode.id] && (userNode.repositoryCount)){
-                    ready = true;
-                }
-            }
-            if (!ready){
-                setTimeout((function(){this.greedyWalkOfFame(previous, visited);}).bind(this), 500);
-                return;
-            }
-            // determine user of maximum repository count
-            var maxIndex = -0.5;
-            var max = 0;
-            for (var n in neighbors){
-                var repoCount = this.getNodeById(neighbors[n]).repositoryCount;
-                if (repoCount && repoCount > max){
-                    if (visited[neighbors[n]]) continue;
-                    max = repoCount;
-                    maxIndex = n;
-                }
+        // check at least one neighbor has the required data (only the case of user nodes for now)
+        var ready = false;
+        for (var n in neighbors){
+            var node = this.getNodeById(neighbors[n]);
+            if (!visited[node.id] && f(node)){
+                ready = true;
             }
         }
-        var next = this.getNodeById(neighbors[maxIndex]);
+        // wait 0.5s if that's not the case (probably enough)
+        if (!ready){
+            setTimeout((function(){this.gradientDescent(previous, visited, f, callback);}).bind(this), 500);
+            return;
+        }
+        // determine neighbor minimizing f
+        var minIndex = null;
+        var min = Infinity;
+        for (var n in neighbors){
+            var value = f(this.getNodeById(neighbors[n]));
+            if (value < min){
+                if (visited[neighbors[n]]) continue;
+                min = value;
+                minIndex = n;
+            }
+        }
+        var next = this.getNodeById(neighbors[minIndex]);
         this.extendNode(next, (function(){
             simulation.alphaTarget(0.3).restart();
             updateGraph(this.getVersionForD3Force());
@@ -154,17 +153,17 @@ class GithubGraph{
             if (callback){
                 callback(next);
             } else {
-                this.greedyWalkOfFame(next, visited);
+                this.gradientDescent(next, visited, f);
             }
         }).bind(this));
     }
 
-    findPath(){
-        var t = prompt("Write a user's login", "mathieuorhan");
-        this.extendWithUser(t, (function(){
-            this.setAnchor2(t);
-            this.extendNode(this.getNodeById(t), this.bidirectionalGreedyWalkOfFame.bind(this));
-        }).bind(this));
+    greedyWalkOfFame(){
+        this.gradientDescent(null, {}, minusImportance);
+    }
+
+    greedyWalkOfAge(){
+        this.gradientDescent(null, {}, earliness);
     }
 
     initializeColor(color, x){
@@ -184,65 +183,6 @@ class GithubGraph{
             }
             visited[next.id] = true;
         }
-    }
-
-    bidirectionalGreedyWalkOfFame(previous1=null, previous2=null, visited1={}, visited2={}, color={}){
-        // We expand a node of the graph component of anchor 1 and anchor 2 alternately.
-        // component of anchor 1 has color 1, component of anchor 2 has color 2.
-        // the colors propagate via the edges, that's how we find when the two components
-        // become one connected component.
-        if (previous1 == null) {
-            previous1 = this.nodes[this.anchor1NodeIndex];
-            visited1[previous1.id] = 0;
-            this.initializeColor(color, 1);
-            if (color[this.nodes[this.anchor2NodeIndex].id] == 1) {
-                this.shortestPathColoring();
-                simulation.alphaTarget(0.3).restart();
-                setTimeout(function(){simulation.alphaTarget(0).restart();}, 500);
-                return;
-            }
-            this.initializeColor(color, 2);
-        }
-        if (previous2 == null) {
-            previous2 = this.nodes[this.anchor2NodeIndex];
-            visited2[previous2.id] = 0;
-        }
-        var count1 = 0;
-        for (var x in visited1){
-            count1++;
-        }
-        var count2 = 0;
-        for (var x in visited2){
-            count2++;
-        }
-        if (count1 <= count2){
-            this.greedyWalkOfFame(previous1, visited1, (function(next){
-                var neighbors = this.getNeighbors(next.id);
-                for (var n in neighbors){
-                    if (color[neighbors[n]] == 2) {
-                        this.shortestPathColoring();
-                        simulation.alphaTarget(0).restart();
-                        return;
-                    }
-                    color[neighbors[n]] = 1;
-                }
-                this.bidirectionalGreedyWalkOfFame(next, previous2, visited1, visited2, color);
-            }).bind(this));
-        } else {
-            this.greedyWalkOfFame(previous2, visited2, (function(next){
-                var neighbors = this.getNeighbors(next.id);
-                for (var n in neighbors){
-                    if (color[neighbors[n]] == 1) {
-                        this.shortestPathColoring();
-                        simulation.alphaTarget(0).restart();
-                        return;
-                    }
-                    color[neighbors[n]] = 2;
-                }
-                this.bidirectionalGreedyWalkOfFame(previous1, next, visited1, visited2, color);
-            }).bind(this));
-        }
-
     }
 
     shortestPathColoring(){
@@ -283,6 +223,74 @@ class GithubGraph{
             current = next;
         }
         updateGraph(this.getVersionForD3Force());
+    }
+
+    greedyBidirectionalPathFinding(previous1=null, previous2=null, visited1={}, visited2={}, color={}){
+        // We expand a node of the graph component of anchor 1 and anchor 2 alternately.
+        // The objective is to find a path between them, going through the heavy forkers / biggest projects.
+        // component of anchor 1 has color 1, component of anchor 2 has color 2.
+        // the colors propagate via the edges, that's how we find when the two components
+        // become one connected component.
+        if (previous1 == null) {
+            previous1 = this.nodes[this.anchor1NodeIndex];
+            visited1[previous1.id] = 0;
+            this.initializeColor(color, 1);
+            if (color[this.nodes[this.anchor2NodeIndex].id] == 1) {
+                this.shortestPathColoring();
+                simulation.alphaTarget(0.3).restart();
+                setTimeout(function(){simulation.alphaTarget(0).restart();}, 500);
+                return;
+            }
+            this.initializeColor(color, 2);
+        }
+        if (previous2 == null) {
+            previous2 = this.nodes[this.anchor2NodeIndex];
+            visited2[previous2.id] = 0;
+        }
+        var count1 = 0;
+        for (var x in visited1){
+            count1++;
+        }
+        var count2 = 0;
+        for (var x in visited2){
+            count2++;
+        }
+        if (count1 <= count2){
+            this.gradientDescent(previous1, visited1, minusImportance, (function(next){
+                var neighbors = this.getNeighbors(next.id);
+                for (var n in neighbors){
+                    if (color[neighbors[n]] == 2) {
+                        this.shortestPathColoring();
+                        simulation.alphaTarget(0).restart();
+                        return;
+                    }
+                    color[neighbors[n]] = 1;
+                }
+                this.greedyBidirectionalPathFinding(next, previous2, visited1, visited2, color);
+            }).bind(this));
+        } else {
+            this.gradientDescent(previous2, visited2, minusImportance, (function(next){
+                var neighbors = this.getNeighbors(next.id);
+                for (var n in neighbors){
+                    if (color[neighbors[n]] == 1) {
+                        this.shortestPathColoring();
+                        simulation.alphaTarget(0).restart();
+                        return;
+                    }
+                    color[neighbors[n]] = 2;
+                }
+                this.greedyBidirectionalPathFinding(previous1, next, visited1, visited2, color);
+            }).bind(this));
+        }
+
+    }
+
+    findPath(){
+        var t = prompt("Write a user's login", "mathieuorhan");
+        this.extendWithUser(t, (function(){
+            this.setAnchor2(t);
+            this.extendNode(this.getNodeById(t), this.greedyBidirectionalPathFinding.bind(this));
+        }).bind(this));
     }
 
     isNew(node){

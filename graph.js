@@ -97,11 +97,16 @@ class GithubGraph{
     }
 
     greedyWalkOfFame(previous=null, visited={}, callback=null){
+        // if a callback is given, only one step will be done
+        // if no callback is given, then 10 steps will be done
         var count = 0;
         for (var x in visited){
             count++;
         }
-        if (count > 10) return;
+        if (count > 10) {
+            simulation.alphaTarget(0).restart();
+            return;
+        }
         if (previous == null) previous = this.nodes[this.anchor1NodeIndex];
         var neighbors = this.getNeighbors(previous.id);
         if (previous.type == "user"){
@@ -148,9 +153,9 @@ class GithubGraph{
             visited[next.id] = true;
             if (callback){
                 callback(next);
-                return;
+            } else {
+                this.greedyWalkOfFame(next, visited);
             }
-            this.greedyWalkOfFame(next, visited);
         }).bind(this));
     }
 
@@ -162,14 +167,15 @@ class GithubGraph{
         }).bind(this));
     }
 
-    initializeColor1(color){
-        // do a BFS and give the color 1 to every node seen from anchor 1
+    initializeColor(color, x){
+        // do a BFS and give the color x to every node seen from anchor x
+        // x in {1, 2}
         var visited = {};
-        var toVisit = [this.nodes[this.anchor1NodeIndex]];
+        var toVisit = [this.nodes[x == 1 ? this.anchor1NodeIndex : this.anchor2NodeIndex]];
         while (toVisit.length > 0){
             var next = toVisit[0];
             toVisit.shift();
-            color[next.id] = 1;
+            color[next.id] = x;
             var neighbors = this.getNeighbors(next.id);
             for (let i = 0; i < neighbors.length; i++){
                 if (!visited[neighbors[i]]){
@@ -188,11 +194,14 @@ class GithubGraph{
         if (previous1 == null) {
             previous1 = this.nodes[this.anchor1NodeIndex];
             visited1[previous1.id] = 0;
-            this.initializeColor1(color);
+            this.initializeColor(color, 1);
             if (color[this.nodes[this.anchor2NodeIndex].id] == 1) {
-                this.shortestPathColoring(); 
+                this.shortestPathColoring();
+                simulation.alphaTarget(0.3).restart();
+                setTimeout(function(){simulation.alphaTarget(0).restart();}, 500);
                 return;
             }
+            this.initializeColor(color, 2);
         }
         if (previous2 == null) {
             previous2 = this.nodes[this.anchor2NodeIndex];
@@ -211,7 +220,8 @@ class GithubGraph{
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
                     if (color[neighbors[n]] == 2) {
-                        this.shortestPathColoring(); 
+                        this.shortestPathColoring();
+                        simulation.alphaTarget(0).restart();
                         return;
                     }
                     color[neighbors[n]] = 1;
@@ -223,7 +233,8 @@ class GithubGraph{
                 var neighbors = this.getNeighbors(next.id);
                 for (var n in neighbors){
                     if (color[neighbors[n]] == 1) {
-                        this.shortestPathColoring(); 
+                        this.shortestPathColoring();
+                        simulation.alphaTarget(0).restart();
                         return;
                     }
                     color[neighbors[n]] = 2;

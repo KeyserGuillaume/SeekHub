@@ -69,6 +69,7 @@ function getRepositoryParentAsync(owner, repo, callback){
                     owner{login}
                     isFork
                     forkCount
+                    createdAt
                   }
               }
             }`
@@ -83,31 +84,37 @@ function getRepositoryParentAsync(owner, repo, callback){
 function postProcessUserRepositoriesAsync(result, i, callback) {
     // This postprocessing is asynchronous because sometimes we find out
     // that the request we made did not give us all the data we needed so
-    // we do other ones. They are done one by one, in a blocking way.
+    // we do other ones. They are done successively, not in parallel.
     // The assumption is that result has been treated between 0 and i (excluded) so
     // i is set to 0 when the function is called from getUserRepositoriesAsync.
     for (let j = i; j < result.length; j++){
         var t = result[j];
         if (!t || (t.node.isFork && !t.node.parent)){
+            // remove from results
             result.splice(j, 1);
             j--;
             continue;
-        }  // I get some null results from the query
+        }  
         if (!t.node.isFork){
             result[j] = {
-                "id": t.node.name, "owner": t.node.owner.login, "isFork": false, "viaFork": false, "forkCount": t.node.forkCount
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": false, 
+                "viaFork": false, "forkCount": t.node.forkCount, "createdAt": t.node.createdAt
             };
         } else if(t.node.name != t.node.parent.name){
+            // two nodes in the results: one for the repo, one for the parent repo
             result.splice(j+1, 0, t);
             result[j] = {
-                "id": t.node.name, "owner": t.node.owner.login, "isFork": true, "viaFork": false, "forkCount": t.node.forkCount
+                "id": t.node.name, "owner": t.node.owner.login, "isFork": true, 
+                "viaFork": false, "forkCount": t.node.forkCount, "createdAt": t.node.createdAt
             };
             result[j+1].node.name = t.node.parent.name;
             postProcessUserRepositoriesAsync(result, j+1, callback);
             return;
         } else if (t.node.name == t.node.parent.name && !t.node.parent.isFork){
+            // "same name, same project" policy
             result[j] = {
-                "id": t.node.name, "owner": t.node.parent.owner.login, "viaFork": true, "forkCount": t.node.parent.forkCount
+                "id": t.node.name, "owner": t.node.parent.owner.login, "isFork": false, 
+                "viaFork": true, "forkCount": t.node.parent.forkCount, "createdAt": t.node.parent.createdAt
             };
         } else {
             // index j is for a repo which was forked from some other forked repo
@@ -143,8 +150,10 @@ function getUserRepositoriesAsync(username, callback) {
                                 owner{login}
                                 isFork
                                 forkCount
+                                createdAt
                               }
                             forkCount
+                            createdAt
                         }
                     }
                 }
@@ -158,12 +167,13 @@ function getUserRepositoriesAsync(username, callback) {
         });
 }
 
-function getUserRepositoryCountAsync(username, callback) {
+function getUserDataAsync(username, callback) {
     if (username == "dependabot-preview[bot]" || username == "dependabot[bot]") return;
     sendQueryToGithubAPIv4(
         {"query":`query {
             user(login:"` + username + `") {
                 login
+                createdAt
                 repositories{
                     totalCount
                 }
@@ -172,7 +182,10 @@ function getUserRepositoryCountAsync(username, callback) {
         },
         function(res){
             var result = JSON.parse(res);
-            result = result.data.user.repositories.totalCount;
+            result = {
+                "repositoryCount": result.data.user.repositories.totalCount, 
+                "createdAt": result.data.user.createdAt
+            };
             postProcessUserRepositoriesAsync(result, 0, callback);
         });
 }

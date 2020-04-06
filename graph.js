@@ -318,11 +318,12 @@ class GithubGraph{
             "avatarUrl": avatarUrl, 
             "isAnchor1": false, 
             "isAnchor2": false,
-            "repositoryCount": null    // this attribute becomes available after a second query, made for every user
+            "repositoryCount": null,    // these attribute become available after
+            "createdAt": null         // a second query, made for every user
         };
     }
 
-    formRepositoryNode(repo, owner, isFork, forkCount){
+    formRepositoryNode(repo, owner, isFork, forkCount, createdAt){
         return {
             "id": repo,
             "type": "repo",
@@ -330,7 +331,8 @@ class GithubGraph{
             "isFork": isFork,
             "isAnchor1": false, 
             "isAnchor2": false, 
-            "forkCount": forkCount
+            "forkCount": forkCount,
+            "createdAt": createdAt
         };
     }
 
@@ -385,7 +387,10 @@ class GithubGraph{
             throw "cannot add repositories of user not already in the graph";
         }
         for (var repo in repos){
-            var repoNode = this.formRepositoryNode(repos[repo].id, repos[repo].owner, repos[repo].isFork, repos[repo].forkCount);
+            var repoNode = this.formRepositoryNode(
+                repos[repo].id, repos[repo].owner, repos[repo].isFork, 
+                repos[repo].forkCount, repos[repo].createdAt
+                );
             if (this.isNew(repoNode)){
                 this.addNewNode(repoNode);
             }
@@ -418,11 +423,19 @@ class GithubGraph{
             this.extendNodeWithUsers(selectedNode.owner, selectedNode.id, callback);
         }
     }
+
+    addUserData(userName){
+        getUserDataAsync(userName, (function(data){
+            this.getNodeById(userName).repositoryCount = data.repositoryCount;
+            this.getNodeById(userName).createdAt = data.createdAt;
+        }).bind(this));
+    }
     
     extendNodeWithRepos(user, callback, addUser=false){
         if (addUser){
             getUserAvatarUrlAsync(user, (function(res){
                 this.addUser(user, res);
+                this.addUserData(user);
                 updateGraph(this.getVersionForD3Force());
                 this.extendNodeWithRepos(user, callback);
             }).bind(this));
@@ -437,8 +450,11 @@ class GithubGraph{
     }
     
     extendWithUser(user, callback){
+        // not used for most users added from extension of repository node
+        // because API v3 gives the avatar URL for free
         getUserAvatarUrlAsync(user, (function(res){
             this.addUser(user, res);
+            this.addUserData(user);
             updateGraph(this.getVersionForD3Force());
             callback();
         }).bind(this));
@@ -449,15 +465,13 @@ class GithubGraph{
         getRepositoryContributorsAsync(owner, repo, (function(res){
             // add these contributors to the graph
             this.addContributorsOfRepository(repo, owner, res);
-            // make query for every contributor to get their repository count
+            // make query for every contributor to get their repository count, date of creation...
             for (var user in res){
                 // made the mistake to put var here at first...
                 let userName = res[user]["login"];
-                getUserRepositoryCountAsync(userName, (function(repositoryCount){
-                    this.getNodeById(userName).repositoryCount = repositoryCount;
-                }).bind(this));
+                this.addUserData(userName);
             }
-            // update graph and go callback. Notice that the repository counts are 
+            // update graph and go callback. Notice that the user data is 
             // probably not available at the time of the callback.
             updateGraph(this.getVersionForD3Force());
             callback();

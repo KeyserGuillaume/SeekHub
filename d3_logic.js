@@ -30,10 +30,12 @@ var simulation = d3.forceSimulation()
 function updateGraph(graph) {
 
     var link = svg.selectAll(".continuous-line,.dashed-line")
-    .data(graph.links)
+    .data(graph.links);
+    link.exit().remove();
     link = link.enter().append("line")
     .merge(link)
     .attr("class",  getLinkClass)
+
 
     var node = svg.selectAll(".nodes,.anchor-node")
     .data(graph.nodes)

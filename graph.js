@@ -10,6 +10,10 @@ class GithubGraph{
     // a graph in which nodes are added, never deleted, and which sends a copy
     // of itself to D3.js
     constructor(){
+        this.init();
+}
+
+    init(){
         this.nodes = [];
         this.links = [];
         this.anchor1NodeIndex = null;
@@ -17,7 +21,7 @@ class GithubGraph{
     }
 
     getVersionForD3Force(){
-        if (!this.anchor1NodeIndex && this.anchor1NodeIndex !== 0){
+        if (this.nodes.length > 1 && !this.anchor1NodeIndex && this.anchor1NodeIndex !== 0){
             this.anchor1NodeIndex = 0;
             this.nodes[0].isAnchor1 = true;
             this.nodes[0].x = width/2;

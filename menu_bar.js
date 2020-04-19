@@ -62,6 +62,15 @@ function download(){
     saveAs(blob, "graph.svg");
 }
 
+function clear(){
+    // empties the graph G, effectively wiping clean the screen
+    G.init();
+    updateGraph(G.getVersionForD3Force());
+    var user = prompt("Please enter someone's user login for the starting point. \nThen try clicking on the nodes, dragging them back and \nforth, zooming in and out, and test some of the buttons below...", 
+    "KeyserGuillaume");
+    G.extendNodeWithRepos(user, function(){}, true);
+}
+
 ReactDOM.render(e(MenuBar, {
     "onClickActions": [
         {name:"extend", hovertext:"With this mode, clicking on a node calls the GitHub API and adds a subset of its neighbors"}, 
@@ -74,6 +83,7 @@ ReactDOM.render(e(MenuBar, {
         {name:"time machine", call:G.greedyWalkOfFame.bind(G), hovertext:"Start a greedy random walk visiting old projects"},
         {name:"find path", call:G.findPath.bind(G), hovertext:"Look for a path linking starting point to another user"},
         {name:"BFS", call:G.BFS.bind(G), hovertext:"If you know what BFS is, then you also know that it is a bad idea here"},
-        {name:"download", call:download, hovertext:"Download the current view as an svg document"}
+        {name:"download", call:download, hovertext:"Download the current view as an svg document"},
+        {name:"clear", call:clear, hovertext:"Clear out the screen and choose user as starting point"}
     ]
 }), domContainer);
